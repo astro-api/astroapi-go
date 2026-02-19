@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `astroapi-go` is a pure Go HTTP client SDK for the Astrology API v3 (`https://api.astrology-api.io`). It is not a server or CLI — it's a library. The only external dependency is `testify` for test assertions; everything else uses the standard library.
 
-**Module:** `github.com/astro-api/astroapi-go` | **Go version:** 1.23
+**Module:** `github.com/astro-api/astroapi-go` | **Go version:** 1.24
 
 ## Common Commands
 

@@ -9,9 +9,6 @@ on:
 permissions:
   contents: read
 
-env:
-  GOEXPERIMENT: aliastypeparams
-
 jobs:
   lint:
     name: Lint
@@ -21,7 +18,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.24"
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -33,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.24", "1.23"]
+        go-version: ["1.24"]
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +62,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.24"
 
       - name: Build
         run: go build ./...
