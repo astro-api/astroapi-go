@@ -1,0 +1,52 @@
+---
+description: Rules for creating and editing API category clients
+globs: categories/**/*.go
+alwaysApply: false
+---
+
+# Category Client Pattern
+
+Each category in `categories/<name>/` has exactly 4 files:
+- `<name>.go` — Client struct + methods
+- `params.go` — request param structs
+- `responses.go` — response type aliases
+- `<name>_test.go` — tests (black-box: `package <name>_test`)
+
+## Client file (`<name>.go`)
+
+```go
+package <name>
+
+import (
+    "context"
+    "github.com/astro-api/astroapi-go/categories"
+    "github.com/astro-api/astroapi-go/option"
+)
+
+const apiPrefix = "api/v3/<name>"
+
+type Client struct {
+    *categories.BaseCategoryClient
+}
+
+func NewClient(base *categories.BaseCategoryClient) *Client {
+    return &Client{BaseCategoryClient: base}
+}
+
+func (c *Client) GetThing(ctx context.Context, params ThingParams, opts ...option.RequestOption) (*ThingResponse, error) {
+    var out ThingResponse
+    if err := c.Post(ctx, c.BuildURL(apiPrefix, "thing"), params, &out, opts...); err != nil {
+        return nil, err
+    }
+    return &out, nil
+}
+```
+
+## Rules
+
+- First param always `ctx context.Context`, last always `opts ...option.RequestOption`
+- Use `c.Get()` / `c.Post()` / `c.Put()` / `c.Delete()` — never raw `MakeRequest`
+- Build URLs with `c.BuildURL(apiPrefix, "segments"...)` — never concatenate strings
+- Params: required fields get `validate:"required"`, optional struct fields use pointer + `omitempty`
+- Responses: default to `map[string]any` alias unless strongly typed
+- After creating a new category, wire into `client.go` (`AstrologyClient` struct + `NewClient()`)

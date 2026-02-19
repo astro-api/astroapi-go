@@ -1,0 +1,137 @@
+# Cursor Rules for astroapi-go
+
+## Project
+
+Pure Go HTTP client SDK for Astrology API v3. Module: `github.com/astro-api/astroapi-go`. Go 1.23. No external dependencies except `testify` for tests.
+
+## Architecture
+
+- `client.go` — root `AstrologyClient` with sub-clients for each API category
+- `categories/base.go` — `BaseCategoryClient` with shared HTTP methods (Get/Post/Put/Delete/MakeRequest)
+- `categories/<name>/` — each category has exactly 4 files: `<name>.go`, `params.go`, `responses.go`, `<name>_test.go`
+- `shared/shared.go` — common types: `BirthData`, `Subject`, `DateTimeLocation`, `DateRange`, `AstrologyOptions`, `ReportOptions`
+- `option/option.go` — functional options (`RequestOption = func(*RequestConfig)`)
+- `errors/error.go` — `AstrologyError` with `StatusCode`, `Message`, `Code`, `Body`
+- `internal/transport/` — `AuthTransport` and `RetryTransport` (both `http.RoundTripper`)
+- `internal/validator/` — struct tag validation (`validate:"required"`)
+- `internal/apijson/` — `Field[T]` generic optional/nullable JSON fields
+
+## Code Conventions
+
+### Category client structure (MUST follow this pattern exactly):
+
+```go
+// Package <name> provides the Client for accessing <description>.
+package <name>
+
+import (
+    "context"
+    "github.com/astro-api/astroapi-go/categories"
+    "github.com/astro-api/astroapi-go/option"
+)
+
+const apiPrefix = "api/v3/<name>"
+
+type Client struct {
+    *categories.BaseCategoryClient
+}
+
+func NewClient(base *categories.BaseCategoryClient) *Client {
+    return &Client{BaseCategoryClient: base}
+}
+
+func (c *Client) GetSomething(ctx context.Context, params SomeParams, opts ...option.RequestOption) (*SomeResponse, error) {
+    var out SomeResponse
+    if err := c.Post(ctx, c.BuildURL(apiPrefix, "endpoint"), params, &out, opts...); err != nil {
+        return nil, err
+    }
+    return &out, nil
+}
+```
+
+### Params (in params.go):
+
+```go
+package <name>
+
+import "github.com/astro-api/astroapi-go/shared"
+
+type SomeParams struct {
+    Subject shared.Subject          `json:"subject" validate:"required"`
+    Options *shared.AstrologyOptions `json:"options,omitempty"`
+}
+```
+
+### Responses (in responses.go):
+
+```go
+package <name>
+
+type SomeResponse map[string]any
+```
+
+### Tests (in <name>_test.go):
+
+```go
+package <name>_test  // black-box testing
+
+// Unit test — mock HTTP server
+func TestClient_GetSomething(t *testing.T) {
+    client, cleanup := testutil.NewClient(t, func(w http.ResponseWriter, r *http.Request) {
+        assert.Equal(t, "/api/v3/<name>/endpoint", r.URL.Path)
+        assert.Equal(t, http.MethodPost, r.Method)
+        testutil.JSON(w, testutil.DataEnvelope(map[string]any{"key": "value"}))
+    })
+    defer cleanup()
+    result, err := client.<Category>.GetSomething(ctx, params)
+    require.NoError(t, err)
+    assert.NotNil(t, result)
+}
+
+// Integration test — real API, skipped without ASTROLOGY_API_KEY
+func TestClient_Integration_AllEndpoints(t *testing.T) {
+    client := testutil.NewIntegrationClient(t)
+    t.Run("GetSomething", func(t *testing.T) {
+        result, err := client.<Category>.GetSomething(ctx, params)
+        require.NoError(t, err)
+        assert.NotNil(t, result)
+    })
+}
+```
+
+## Rules
+
+- All methods take `ctx context.Context` as first param and `opts ...option.RequestOption` as last
+- Use `c.Post()` / `c.Get()` from embedded `BaseCategoryClient`, never call `MakeRequest` directly from category code
+- URL building: `c.BuildURL(apiPrefix, "segment1", "segment2")` — never concatenate strings manually
+- Params with required fields use `validate:"required"` struct tag
+- Optional fields use `omitempty` in JSON tag and pointer types for struct fields
+- Response types are `map[string]any` aliases unless there's a strong reason for typed structs
+- Mock-only tests guard with `if testutil.IsIntegration() { t.Skip("...") }`
+- Use `testutil.DefaultSubject()` and `testutil.DefaultDateTimeLocation()` for test fixtures
+- Use `testutil.DataEnvelope()` or `testutil.ResultEnvelope()` to wrap mock responses
+- After creating a new category, wire it into `AstrologyClient` in `client.go`
+- Import errors package as: `astroerrors "github.com/astro-api/astroapi-go/errors"`
+- Import root package as: `astroapi "github.com/astro-api/astroapi-go"`
+
+## Versioning
+
+Git tags following semver: `v{MAJOR}.{MINOR}.{PATCH}`
+
+- PATCH (v0.1.0 → v0.1.1): bug fix, docs
+- MINOR (v0.1.1 → v0.2.0): new category, new method (backwards-compatible)
+- MAJOR (v0.2.0 → v1.0.0): breaking API change (removed/renamed types, changed signatures)
+
+Release: `git tag v0.1.0 && git push origin v0.1.0` — CI creates GitHub Release + notifies Go Module Proxy.
+
+Starting from v2+, module path must include major suffix (`github.com/astro-api/astroapi-go/v2`) and all internal imports must be updated.
+
+## Commands
+
+```bash
+make build        # go build ./...
+make test         # go test -race -count=1 -timeout 120s ./...
+make lint         # golangci-lint run ./...
+make fmt          # gofmt -w -s .
+make vet          # go vet ./...
+```

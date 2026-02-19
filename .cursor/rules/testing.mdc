@@ -1,0 +1,51 @@
+---
+description: Testing patterns and conventions
+globs: **/*_test.go
+alwaysApply: false
+---
+
+# Testing Conventions
+
+## Unit tests (always run, no API key)
+
+```go
+package <name>_test  // always black-box
+
+var ctx = context.Background()
+
+func TestClient_GetThing(t *testing.T) {
+    client, cleanup := testutil.NewClient(t, func(w http.ResponseWriter, r *http.Request) {
+        assert.Equal(t, "/api/v3/<name>/thing", r.URL.Path)
+        assert.Equal(t, http.MethodPost, r.Method)
+        assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
+        testutil.JSON(w, testutil.DataEnvelope(map[string]any{"key": "value"}))
+    })
+    defer cleanup()
+
+    result, err := client.<Name>.GetThing(ctx, params)
+    require.NoError(t, err)
+    assert.NotNil(t, result)
+}
+```
+
+## Integration tests (skipped without ASTROLOGY_API_KEY)
+
+```go
+func TestClient_Integration_AllEndpoints(t *testing.T) {
+    client := testutil.NewIntegrationClient(t)
+    t.Run("GetThing", func(t *testing.T) {
+        result, err := client.<Name>.GetThing(ctx, params)
+        require.NoError(t, err)
+        assert.NotNil(t, result)
+    })
+}
+```
+
+## Rules
+
+- Use `testutil.NewClient(t, handler)` for mock server, `testutil.NewIntegrationClient(t)` for real API
+- Wrap mock responses with `testutil.DataEnvelope()` or `testutil.ResultEnvelope()`
+- Use `testutil.DefaultSubject()` / `testutil.DefaultDateTimeLocation()` for fixtures
+- Mock-only tests guard: `if testutil.IsIntegration() { t.Skip("...") }`
+- Use `require` for fatal assertions, `assert` for non-fatal
+- Test names: `TestClient_MethodName`, `TestClient_MethodName_ErrorCase`, `TestClient_Integration_AllEndpoints`

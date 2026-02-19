@@ -1,0 +1,44 @@
+---
+description: General project rules for astroapi-go SDK
+globs:
+alwaysApply: true
+---
+
+# astroapi-go SDK
+
+Pure Go HTTP client SDK for Astrology API v3. Module `github.com/astro-api/astroapi-go`. Go 1.23. Only external dep: `testify` for tests.
+
+## Key files
+
+- `client.go` — root `AstrologyClient`, `NewClient()` constructor
+- `categories/base.go` — `BaseCategoryClient` shared HTTP logic
+- `shared/shared.go` — `BirthData`, `Subject`, `DateTimeLocation`, `AstrologyOptions`, etc.
+- `option/option.go` — functional options pattern
+- `errors/error.go` — `AstrologyError` type
+
+## Import aliases
+
+```go
+import astroapi "github.com/astro-api/astroapi-go"
+import astroerrors "github.com/astro-api/astroapi-go/errors"
+```
+
+## Commands
+
+- Build: `make build`
+- Test: `make test`
+- Lint: `make lint`
+- Format: `make fmt`
+- Single test: `go test -race -run TestName ./categories/<name>/`
+
+## Versioning
+
+Git tags following semver: `v{MAJOR}.{MINOR}.{PATCH}`
+
+- PATCH: bug fix, docs
+- MINOR: new category/method (backwards-compatible)
+- MAJOR: breaking API change
+
+Release: `git tag vX.Y.Z && git push origin vX.Y.Z`
+
+v2+ requires module path suffix (`/v2`) and updating all internal imports.

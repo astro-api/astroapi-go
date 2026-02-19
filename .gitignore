@@ -1,0 +1,6 @@
+docs-openapi.json
+coverage.out
+coverage.html
+dist/
+*.test
+vendor/
