@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  GOEXPERIMENT: aliastypeparams
+
 jobs:
   test:
     name: Test before release

@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  GOEXPERIMENT: aliastypeparams
+
 jobs:
   lint:
     name: Lint
@@ -30,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.23", "1.22"]
+        go-version: ["1.24", "1.23"]
     steps:
       - uses: actions/checkout@v4
 
@@ -48,7 +51,7 @@ jobs:
         run: go test -race -count=1 -timeout 120s -coverprofile=coverage.out ./...
 
       - name: Upload coverage
-        if: matrix.go-version == '1.23'
+        if: matrix.go-version == '1.24'
         uses: actions/upload-artifact@v4
         with:
           name: coverage
